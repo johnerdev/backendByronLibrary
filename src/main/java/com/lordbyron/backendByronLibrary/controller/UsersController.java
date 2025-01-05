@@ -1,7 +1,9 @@
 package com.lordbyron.backendByronLibrary.controller;
 
 
-import com.lordbyron.backendByronLibrary.Dto.*;
+import com.lordbyron.backendByronLibrary.Dto.userDto.RoleAssignmentDTO;
+import com.lordbyron.backendByronLibrary.Dto.userDto.UpdatePasswordDto;
+import com.lordbyron.backendByronLibrary.Dto.userDto.UserStatusDto;
 import com.lordbyron.backendByronLibrary.entity.Role;
 import com.lordbyron.backendByronLibrary.entity.Users;
 import com.lordbyron.backendByronLibrary.exception.ExceptionMessage;
@@ -14,7 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController

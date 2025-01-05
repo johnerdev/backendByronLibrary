@@ -1,9 +1,9 @@
 package com.lordbyron.backendByronLibrary.services;
 
-import com.lordbyron.backendByronLibrary.Dto.RoleAssignmentDTO;
-import com.lordbyron.backendByronLibrary.Dto.UpdatePasswordDto;
-import com.lordbyron.backendByronLibrary.Dto.UserDto;
-import com.lordbyron.backendByronLibrary.Dto.UserStatusDto;
+import com.lordbyron.backendByronLibrary.Dto.userDto.RoleAssignmentDTO;
+import com.lordbyron.backendByronLibrary.Dto.userDto.UpdatePasswordDto;
+import com.lordbyron.backendByronLibrary.Dto.userDto.UserDto;
+import com.lordbyron.backendByronLibrary.Dto.userDto.UserStatusDto;
 import com.lordbyron.backendByronLibrary.entity.Role;
 import com.lordbyron.backendByronLibrary.entity.Users;
 import org.springframework.http.ResponseEntity;

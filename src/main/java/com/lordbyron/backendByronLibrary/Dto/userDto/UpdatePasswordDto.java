@@ -1,4 +1,4 @@
-package com.lordbyron.backendByronLibrary.Dto;
+package com.lordbyron.backendByronLibrary.Dto.userDto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;

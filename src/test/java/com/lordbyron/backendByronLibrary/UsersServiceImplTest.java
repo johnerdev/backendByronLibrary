@@ -1,7 +1,7 @@
 package com.lordbyron.backendByronLibrary;
 
-import com.lordbyron.backendByronLibrary.Dto.UpdatePasswordDto;
-import com.lordbyron.backendByronLibrary.Dto.UserStatusDto;
+import com.lordbyron.backendByronLibrary.Dto.userDto.UpdatePasswordDto;
+import com.lordbyron.backendByronLibrary.Dto.userDto.UserStatusDto;
 import com.lordbyron.backendByronLibrary.entity.Users;
 import com.lordbyron.backendByronLibrary.exception.ExceptionMessage;
 import com.lordbyron.backendByronLibrary.repository.RoleRepository;
