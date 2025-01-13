@@ -1,6 +1,7 @@
 package com.lordbyron.backendByronLibrary.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -36,5 +37,10 @@ public class Borrow {
     @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false, length = 20)
     private StateBorrow state;
+
+    @Column(length = 500)
+    private String description;
+
+
 }
 

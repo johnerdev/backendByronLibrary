@@ -1,5 +1,6 @@
 package com.lordbyron.backendByronLibrary.services;
 
+import com.lordbyron.backendByronLibrary.Dto.userDto.BorrowDto.BorrowDTO;
 import com.lordbyron.backendByronLibrary.entity.Book;
 import com.lordbyron.backendByronLibrary.entity.Borrow;
 import com.lordbyron.backendByronLibrary.entity.StateBorrow;
@@ -12,6 +13,7 @@ import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +21,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -31,58 +34,76 @@ public class BorrowServiceImpl implements BorrowService {
 //   public BorrowServiceImpl(BorrowRepository borrowRepository){this.borrowRepository=borrowRepository;}
 
     @Override
-    public List<Borrow> getBorrows() {
+    public List<BorrowDTO> getBorrows() {
         log.info("Fetching all borrows");
 
-        // Obtener la lista de prestamos
-        List<Borrow> borrow = (List<Borrow>)borrowRepository.findAll();
+        // Obtener la lista de préstamos
+        List<Borrow> borrows = (List<Borrow>) borrowRepository.findAll();
 
         // Validar si la lista está vacía
-        if (borrow.isEmpty()) {
-            log.warn("No borrow found in the database");
-            throw new ExceptionMessage("No se encontraron prestamos registrados");
+        if (borrows.isEmpty()) {
+            log.warn("No borrows found in the database");
+            throw new ExceptionMessage("No se encontraron préstamos registrados");
         }
 
-        log.info("Total borrows found: {}", borrow.size());
-        return borrow;
+        // Convertir la lista de préstamos a una lista de DTOs
+        List<BorrowDTO> borrowDTOs = borrows.stream().map(nborrow -> new BorrowDTO(
+                nborrow.getIdBorrow(),
+                nborrow.getBook().getTitle(),
+                nborrow.getUser().getEmail(),
+                nborrow.getDateBorrow().toString(),
+                nborrow.getDateDevolution().toString(),
+                nborrow.getState().toString(),
+                nborrow.getDescription()
+        )).collect(Collectors.toList());
+
+        log.info("Total borrows found: {}", borrowDTOs.size());
+        return borrowDTOs;
     }
 
     @Override
-    public ResponseEntity<?> saveBorrow(Long id, String userEmail) {
+    public ResponseEntity<?> saveBorrow(Long bookId, String userEmail) {
+        log.info("Creating a new borrow for book ID: {} and user email: {}", bookId, userEmail);
 
-        // Verificar si el usuario existe
+        // Validar si el usuario existe
         Users user = usersRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado con el email: " + userEmail));
+                .orElseThrow(() -> new ExceptionMessage("Usuario no encontrado con el email: " + userEmail));
 
-        // Verificar si el libro existe
-        Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Libro no encontrado con el ID: " + id));
+        // Validar si el libro existe
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new ExceptionMessage("Libro no encontrado con el ID: " + bookId));
 
         // Validar disponibilidad del libro
         if (!book.getAvailable()) {
-            throw new IllegalStateException("El libro no está disponible para préstamo");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "El libro no está disponible para préstamo"));
         }
 
-        // Asignar el estado del libro y el préstamo
-        book.setAvailable(false);
+        // Crear y configurar el préstamo
         Borrow borrow = new Borrow();
         borrow.setBook(book);
-        borrow.setUser(user); // Asignar el usuario que realiza el préstamo
+        borrow.setUser(user);
         borrow.setDateBorrow(LocalDate.now());
         borrow.setDateDevolution(LocalDate.now().plusWeeks(1)); // 1 semana de préstamo
         borrow.setState(StateBorrow.PENDIENTE);
 
-        // Guardar el libro actualizado y el préstamo
+        // Actualizar estado del libro y guardar entidades
+        book.setAvailable(false);
         bookRepository.save(book);
         borrowRepository.save(borrow);
 
-        log.info("Préstamo creado con éxito para el usuario: {}", user.getEmail());
+        log.info("Préstamo creado con éxito para el usuario: {} y libro ID: {}", user.getEmail(), bookId);
 
-        // Construir la respuesta
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Préstamo creado con éxito!");
-         return ResponseEntity.ok(response);
+        // Construir y devolver la respuesta
+        Map<String, Object> response = Map.of(
+                "message", "Préstamo creado con éxito!"
+
+        );
+
+        return ResponseEntity.ok(response);
     }
+
+
 
 
     @Override
