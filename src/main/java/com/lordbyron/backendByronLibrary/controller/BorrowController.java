@@ -60,5 +60,50 @@ public class BorrowController {
                     .body(Map.of("error", "Ocurrió un error inesperado. Por favor intente más tarde."));
         }
     }
+    @PutMapping("/return/{id}")
+    public ResponseEntity<?> updateBorrow(@PathVariable Long id) {
+        log.info("Received request to update borrow with ID: {}", id);
+
+        try {
+            return borrowService.updateBorrow(id);
+        } catch (ExceptionMessage ex) {
+            log.error("Error updating borrow: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            log.error("Unexpected error updating borrow: {}", ex.getMessage(), ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ocurrió un error inesperado. Por favor intente más tarde."));
+        }
+    }
+    @GetMapping("/count")
+    public Long countBorrow(){
+        return borrowService.countBorrow();
+    }
+
+    @GetMapping("/find/{email}")
+    public ResponseEntity<?> getBorrowsByUserEmail(@PathVariable("email") String email) {
+        log.info("Received request to fetch borrows for user email: {}", email);
+
+        try {
+            // Llamada al servicio para obtener los préstamos
+            List<BorrowDTO> borrowDTOs = borrowService.getBorrow(email);
+
+            // Devolver respuesta exitosa
+            return ResponseEntity.ok(borrowDTOs);
+
+        } catch (ExceptionMessage ex) {
+            // Manejo de errores personalizados
+            log.error("Error fetching borrows for email {}: {}", email, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", ex.getMessage()));
+
+        } catch (Exception ex) {
+            // Manejo de errores generales
+            log.error("Unexpected error fetching borrows for email {}: {}", email, ex.getMessage(), ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ocurrió un error inesperado. Por favor, inténtelo más tarde."));
+        }
+    }
+
 
 }

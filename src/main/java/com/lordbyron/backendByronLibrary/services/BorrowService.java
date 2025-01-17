@@ -10,7 +10,7 @@ import java.util.Map;
 public interface BorrowService {
     List<BorrowDTO> getBorrows();
      ResponseEntity<?> saveBorrow(Long id, String userEmail);
-    ResponseEntity<Map<String, String>> updateBorrow(final Borrow borrow);
+    ResponseEntity<Map<String, String>> updateBorrow(Long id);
     Long countBorrow();
-    Borrow getBorrow(Long id);
+    List<BorrowDTO>getBorrow(String email);
 }

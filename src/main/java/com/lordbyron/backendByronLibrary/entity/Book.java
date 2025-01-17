@@ -55,7 +55,7 @@ public class Book {
     @Column(length = 500)
     private String description;
 
-    @Lob
+    @Column(length = 500)
     private String content;
 
     @Column(length = 50)

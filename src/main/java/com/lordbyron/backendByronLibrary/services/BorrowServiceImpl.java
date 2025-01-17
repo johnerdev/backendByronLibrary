@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -107,10 +108,10 @@ public class BorrowServiceImpl implements BorrowService {
 
 
     @Override
-    public ResponseEntity<Map<String, String>> updateBorrow(Borrow borrow) {
+    public ResponseEntity<Map<String, String>> updateBorrow(Long id) {
         // Verificar si el préstamo existe
-        Borrow existingBorrow = borrowRepository.findById(borrow.getIdBorrow())
-                .orElseThrow(() -> new ExceptionMessage("Préstamo no encontrado con el ID: " + borrow.getIdBorrow()));
+        Borrow existingBorrow = borrowRepository.findById(id)
+                .orElseThrow(() -> new ExceptionMessage("Préstamo no encontrado con el ID: " ));
 
         // Validar si el préstamo ya está marcado como devuelto
         if (existingBorrow.getState() == StateBorrow.DEVUELTO) {
@@ -118,8 +119,8 @@ public class BorrowServiceImpl implements BorrowService {
         }
 
         // Verificar si el libro asociado existe
-        Book book = bookRepository.findById(borrow.getBook().getId())
-                .orElseThrow(() -> new ExceptionMessage("Libro no encontrado con el ID: " + borrow.getBook().getId()));
+        Book book = bookRepository.findById(existingBorrow.getBook().getId())
+                .orElseThrow(() -> new ExceptionMessage("Libro no encontrado con el ID: " + existingBorrow.getBook().getId()));
 
         // Actualizar el estado del libro y el préstamo
         book.setAvailable(true); // Marcar el libro como disponible
@@ -143,10 +144,36 @@ public class BorrowServiceImpl implements BorrowService {
     }
 
     @Override
-    public Borrow getBorrow(Long id) {
-        // Verificar si el préstamo existe
-        Borrow existingBorrow = borrowRepository.findById(id)
-                .orElseThrow(() -> new ExceptionMessage("Préstamo no encontrado con el ID: " + id));
-        return existingBorrow;
+    public List<BorrowDTO> getBorrow(String email) {
+        log.info("Fetching borrows for user email: {}", email);
+
+        // Buscar el usuario por email
+        Users user = usersRepository.findByEmail(email)
+                .orElseThrow(() -> new ExceptionMessage("Usuario no encontrado con el correo: " + email));
+
+        // Buscar los préstamos asociados al usuario
+        List<Borrow> borrows = borrowRepository.findByUserId(user.getId());
+
+        // Validar si no se encontraron préstamos
+        if (borrows.isEmpty()) {
+            throw new ExceptionMessage("No se encontraron préstamos para el usuario con el correo: " + email);
+        }
+
+        log.info("Found {} borrows for user email: {}", borrows.size(), email);
+
+        // Mapear los préstamos a BorrowDTO
+        return borrows.stream()
+                .map(borrow -> new BorrowDTO(
+                        borrow.getIdBorrow(),
+                        borrow.getBook().getTitle(),
+                        borrow.getUser().getEmail(),
+                        borrow.getDateBorrow().toString(),
+                        borrow.getDateDevolution().toString(),
+                        borrow.getState().toString(),
+                        borrow.getBook().getDescription() // Agregar descripción del libro
+                ))
+                .collect(Collectors.toList());
     }
+
+
 }
