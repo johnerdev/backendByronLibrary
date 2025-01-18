@@ -58,4 +58,19 @@ public class ReverveController {
                     .body(Map.of("error", "Ocurrió un error inesperado. Por favor, inténtelo más tarde."));
         }
     }
+    @PutMapping("/cancel/{id}")
+    public ResponseEntity<?> cancelReservation(@PathVariable Long id) {
+        log.info("Received request to cancel reservation with ID: {}", id);
+        try {
+            return reserveService.cancelReserve(id);
+        } catch (ExceptionMessage ex) {
+            log.error("Error canceling reservation: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            log.error("Unexpected error canceling reservation: {}", ex.getMessage(), ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ocurrió un error inesperado. Por favor, inténtelo más tarde."));
+        }
+    }
 }

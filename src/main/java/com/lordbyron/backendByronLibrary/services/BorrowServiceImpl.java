@@ -1,13 +1,11 @@
 package com.lordbyron.backendByronLibrary.services;
 
 import com.lordbyron.backendByronLibrary.Dto.userDto.BorrowDto.BorrowDTO;
-import com.lordbyron.backendByronLibrary.entity.Book;
-import com.lordbyron.backendByronLibrary.entity.Borrow;
-import com.lordbyron.backendByronLibrary.entity.StateBorrow;
-import com.lordbyron.backendByronLibrary.entity.Users;
+import com.lordbyron.backendByronLibrary.entity.*;
 import com.lordbyron.backendByronLibrary.exception.ExceptionMessage;
 import com.lordbyron.backendByronLibrary.repository.BookRepository;
 import com.lordbyron.backendByronLibrary.repository.BorrowRepository;
+import com.lordbyron.backendByronLibrary.repository.ReserveRepository;
 import com.lordbyron.backendByronLibrary.repository.UsersRepository;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -32,6 +30,7 @@ public class BorrowServiceImpl implements BorrowService {
     private BorrowRepository borrowRepository;
     private BookRepository bookRepository;
     private UsersRepository  usersRepository;
+    private ReserveRepository reserveRepository;
 //   public BorrowServiceImpl(BorrowRepository borrowRepository){this.borrowRepository=borrowRepository;}
 
     @Override
@@ -61,48 +60,82 @@ public class BorrowServiceImpl implements BorrowService {
         log.info("Total borrows found: {}", borrowDTOs.size());
         return borrowDTOs;
     }
-
     @Override
     public ResponseEntity<?> saveBorrow(Long bookId, String userEmail) {
         log.info("Creating a new borrow for book ID: {} and user email: {}", bookId, userEmail);
 
-        // Validar si el usuario existe
-        Users user = usersRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ExceptionMessage("Usuario no encontrado con el email: " + userEmail));
-
-        // Validar si el libro existe
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new ExceptionMessage("Libro no encontrado con el ID: " + bookId));
-
-        // Validar disponibilidad del libro
-        if (!book.getAvailable()) {
+        // Validar entrada
+        if (bookId == null || userEmail == null || userEmail.isBlank()) {
+            log.warn("Invalid input: bookId or userEmail is null/empty");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "El libro no está disponible para préstamo"));
+                    .body(Map.of("error", "Los parámetros 'bookId' y 'userEmail' son obligatorios y no pueden estar vacíos."));
         }
 
-        // Crear y configurar el préstamo
-        Borrow borrow = new Borrow();
-        borrow.setBook(book);
-        borrow.setUser(user);
-        borrow.setDateBorrow(LocalDate.now());
-        borrow.setDateDevolution(LocalDate.now().plusWeeks(1)); // 1 semana de préstamo
-        borrow.setState(StateBorrow.PENDIENTE);
+        try {
+            // Validar si el usuario existe
+            Users user = usersRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new ExceptionMessage("Usuario no encontrado con el email: " + userEmail));
 
-        // Actualizar estado del libro y guardar entidades
-        book.setAvailable(false);
-        bookRepository.save(book);
-        borrowRepository.save(borrow);
+            // Validar si el libro existe
+            Book book = bookRepository.findById(bookId)
+                    .orElseThrow(() -> new ExceptionMessage("Libro no encontrado con el ID: " + bookId));
 
-        log.info("Préstamo creado con éxito para el usuario: {} y libro ID: {}", user.getEmail(), bookId);
+            // Verificar si el libro tiene una reserva activa
+            Optional<Reserve> reserve = reserveRepository.findByBook_IdAndState(bookId, StateReserve.ACTIVA);
+            if (reserve.isPresent() && !reserve.get().getUser().getId().equals(user.getId())) {
+                log.warn("Attempted borrow for reserved book ID: {}", bookId);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "El libro está reservado para otro usuario."));
+            }
 
-        // Construir y devolver la respuesta
-        Map<String, Object> response = Map.of(
-                "message", "Préstamo creado con éxito!"
+            // Verificar si el libro está actualmente prestado
+            Optional<Borrow> activeBorrow = borrowRepository.findByBookIdAndState(bookId, StateBorrow.PENDIENTE);
+            if (activeBorrow.isPresent()) {
+                log.warn("Attempted borrow for a book already borrowed. Book ID: {}", bookId);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "El libro ya está actualmente prestado."));
+            }
 
-        );
+            // Crear y configurar el préstamo
+            Borrow borrow = new Borrow();
+            borrow.setBook(book);
+            borrow.setUser(user);
+            borrow.setDateBorrow(LocalDate.now());
+            borrow.setDateDevolution(LocalDate.now().plusWeeks(1)); // 1 semana de préstamo
+            borrow.setState(StateBorrow.PENDIENTE);
 
-        return ResponseEntity.ok(response);
+            // Actualizar la reserva (si existe) como completada
+            reserve.ifPresent(r -> {
+                r.setDateReserve(LocalDate.now());
+                r.setState(StateReserve.COMPLETADA);
+                reserveRepository.save(r);
+            });
+
+            // Actualizar el estado del libro y guardar entidades
+            book.setAvailable(false);
+            bookRepository.save(book);
+            borrowRepository.save(borrow);
+
+            log.info("Préstamo creado con éxito para el usuario: {} y libro ID: {}", user.getEmail(), bookId);
+
+            // Construir y devolver la respuesta
+            Map<String, Object> response = Map.of(
+                    "message", "Préstamo creado con éxito!"
+            );
+
+            return ResponseEntity.ok(response);
+
+        } catch (ExceptionMessage ex) {
+            log.error("Error creating borrow: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            log.error("Unexpected error creating borrow: {}", ex.getMessage(), ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ocurrió un error inesperado. Por favor, inténtelo más tarde."));
+        }
     }
+
 
 
 

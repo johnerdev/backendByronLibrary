@@ -9,32 +9,31 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.util.Date;
 
-@Entity
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "Reserve")
+@Entity
 public class Reserve {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idReserve;
 
-    @ManyToOne
-    @JoinColumn(name = "id_user", nullable = false)
-    private Users user;
-
-    @ManyToOne
-    @JoinColumn(name = "id_libro", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
-    @Temporal(TemporalType.DATE)
-    private LocalDate dateReserve;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private Users user;
 
     @Enumerated(EnumType.STRING)
     private StateReserve state;
 
-    // Getters y Setters
-    // Constructor vacío y parametrizado
+    private LocalDate dateReserve;
+
+    // Getters y setters...
 }

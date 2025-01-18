@@ -117,15 +117,69 @@ public class ReserveServiceImpl implements ReserveService{
                     .body(Map.of("error", "Ocurrió un error inesperado. Por favor, inténtelo más tarde."));
         }
     }
+    @Override
+    public ResponseEntity<?> cancelReserve(Long id) {
+        log.info("Processing cancellation for reservation ID: {}", id);
 
+        // Validar entrada
+        if (id == null) {
+            log.warn("Invalid input for reservation cancellation: Reservation ID is null");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "El parámetro 'id' es obligatorio y no puede estar vacío."));
+        }
 
+        try {
+            // Validar si la reserva existe
+            Reserve reserve = reserveRepository.findById(id)
+                    .orElseThrow(() -> new ExceptionMessage("Reserva no encontrada con el ID: " + id));
 
-    public void cancelReserve(Long id) {
-        Reserve reserve = reserveRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Reserva no encontrada"));
-        reserve.setState(StateReserve.CANCELADA);
-        reserveRepository.save(reserve);
+            // Validar el estado actual de la reserva
+            if (reserve.getState() == StateReserve.CANCELADA) {
+                log.warn("Attempted to cancel a reservation that is already canceled. Reservation ID: {}", id);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "La reserva ya está cancelada."));
+            }
+
+            // Obtener el libro asociado
+            Book book = reserve.getBook();
+            if (book == null) {
+                log.error("No book associated with reservation ID: {}", id);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("error", "Error interno: No se encontró el libro asociado a la reserva."));
+            }
+
+            // Actualizar estado de la reserva y del libro
+            reserve.setState(StateReserve.CANCELADA);
+            book.setAvailable(true);
+
+            // Guardar cambios en la base de datos
+            reserveRepository.save(reserve);
+            bookRepository.save(book);
+
+            log.info("Reservation ID {} successfully canceled. Book ID {} marked as available.", id, book.getId());
+
+            // Construir y devolver la respuesta
+            Map<String, Object> response = Map.of(
+                    "message", "Reserva cancelada con éxito!",
+                    "reservationId", id,
+                    "bookId", book.getId(),
+                    "bookTitle", book.getTitle(),
+                    "state", reserve.getState().toString()
+            );
+            return ResponseEntity.ok(response);
+
+        } catch (ExceptionMessage ex) {
+            log.error("Error during cancellation: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            log.error("Unexpected error during cancellation: {}", ex.getMessage(), ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ocurrió un error inesperado. Por favor, inténtelo más tarde."));
+        }
     }
+
+
 
     public List<Reserve> listReserveBYUser(Long idUser) {
         return reserveRepository.findByUserId(idUser);
