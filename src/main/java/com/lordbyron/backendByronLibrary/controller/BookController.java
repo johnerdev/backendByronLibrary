@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,10 +21,11 @@ import java.util.Map;
 public class BookController {
     private final BookService  bookService;
     private static final Logger log = LoggerFactory.getLogger(UsersServiceImpl.class);
-
     public BookController(BookService bookService) {
         this.bookService = bookService;
     }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('LIBRARIAN') or hasRole('USER')")
     @GetMapping("/all")
     public ResponseEntity<?> getAllBooks() {
         try {
@@ -33,6 +35,7 @@ public class BookController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }
+    @PreAuthorize("hasRole('ADMIN') or hasRole('LIBRARIAN')")
     @PostMapping("/add")
     public ResponseEntity<?>addBook(@RequestBody Book book){
         try {
@@ -42,7 +45,7 @@ public class BookController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }
-
+    @PreAuthorize("hasRole('ADMIN') or hasRole('LIBRARIAN')")
     @PutMapping("/update")
     public ResponseEntity<Map<String, String>> updateBook(@RequestBody Book book) {
         try {

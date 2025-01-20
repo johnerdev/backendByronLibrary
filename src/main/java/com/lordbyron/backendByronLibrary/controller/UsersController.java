@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -29,7 +30,7 @@ public class UsersController {
         this.usersService = usersService;
     }
 
-
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
     public ResponseEntity<?> getAllUsers() {
         try {
@@ -39,7 +40,7 @@ public class UsersController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/add")
     public ResponseEntity<?>addUsers(@RequestBody Users users){
         try {
@@ -54,7 +55,7 @@ public class UsersController {
     public UserDto login(@RequestBody LoginDto login){
         return  usersService.loginUser(login.getEmail() ,login.getPassword());
     }*/
-
+   @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/update")
     public ResponseEntity<Map<String, String>> updateUser(@RequestBody Users user) {
         try {
@@ -68,7 +69,7 @@ public class UsersController {
     public Long countUsers(){
         return usersService.countUsers();
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("find/{email}")
     public ResponseEntity<?> getUser(@PathVariable("email") String email) {
         try {
@@ -81,7 +82,7 @@ public class UsersController {
         }
     }
 
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/add-role")
     public ResponseEntity<?> addRoleToUser(@RequestBody @Valid RoleAssignmentDTO roleAssignmentDTO) {
         log.info("Request to add role '{}' to user '{}'", roleAssignmentDTO.getRoleName(), roleAssignmentDTO.getEmail());
@@ -93,7 +94,7 @@ public class UsersController {
         }
     }
 
-
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/remove-role")
     public ResponseEntity<Map<String, String>> removeRoleFromUser(@RequestBody RoleAssignmentDTO removeRoleDto) {
         try {
@@ -103,7 +104,7 @@ public class UsersController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/status")
     public ResponseEntity<Map<String, String>> changeUserStatus(@RequestBody UserStatusDto changeUserStatusDto) {
         try {
@@ -121,7 +122,7 @@ public class UsersController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/role/save")
     public ResponseEntity<?> saveRole(@RequestBody Role role) {
         try {

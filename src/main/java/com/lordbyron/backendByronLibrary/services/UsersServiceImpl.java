@@ -12,6 +12,7 @@ import com.lordbyron.backendByronLibrary.repository.UsersRepository;
 import com.lordbyron.backendByronLibrary.exception.ExceptionMessage;
 import jakarta.transaction.Transactional;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,11 +28,12 @@ public class UsersServiceImpl implements UsersServices{
     private static final Logger log = LoggerFactory.getLogger(UsersServiceImpl.class);
     private final UsersRepository usersRepository;
     private final RoleRepository roleRepository;
-    /*private final PasswordEncoder passwordEncoder;*/
+    private final PasswordEncoder passwordEncoder;
 
-    public UsersServiceImpl(UsersRepository usersRepository, RoleRepository roleRepository) {
+    public UsersServiceImpl(UsersRepository usersRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
         this.usersRepository = usersRepository;
         this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -47,6 +49,8 @@ public class UsersServiceImpl implements UsersServices{
 
         // Establecer el usuario como habilitado
         user.setEnabled(true);
+        // Codificar la contraseña antes de guardar
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
 
         // Guardar el nuevo usuario
         Users savedUser = usersRepository.save(user);
@@ -257,7 +261,8 @@ public class UsersServiceImpl implements UsersServices{
             var user = optionalUser.get();
 
             // Actualizar el password
-            user.setPassword(updatePassword.getNewPassword());
+            // Codificar la contraseña antes de guardar
+            user.setPassword(passwordEncoder.encode(updatePassword.getNewPassword()));
             usersRepository.save(user);
         } catch (Exception e) {
             throw new ExceptionMessage("Error al actualizar el password del usuario: " + e.getMessage());

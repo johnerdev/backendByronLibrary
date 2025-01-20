@@ -8,6 +8,7 @@ import com.lordbyron.backendByronLibrary.services.BorrowService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,8 +26,8 @@ public class BorrowController {
     public BorrowController(BorrowService borrowService) {
         this.borrowService = borrowService;
     }
-
-    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('LIBRARIAN')")
+        @GetMapping("/all")
     public ResponseEntity<?> getAllBorrows() {
         try {
             List<BorrowDTO> borrow = borrowService.getBorrows();
@@ -35,7 +36,7 @@ public class BorrowController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }
-
+    @PreAuthorize("hasRole('ADMIN') or hasRole('LIBRARIAN')")
     @PostMapping("/add/{id}/{email}")
     public ResponseEntity<?> createBorrow(@PathVariable Long id, @PathVariable String email) {
         log.info("Received request to create borrow. Book ID: {}, User Email: {}", id, email);
@@ -60,6 +61,7 @@ public class BorrowController {
                     .body(Map.of("error", "Ocurrió un error inesperado. Por favor intente más tarde."));
         }
     }
+    @PreAuthorize("hasRole('ADMIN') or hasRole('LIBRARIAN')")
     @PutMapping("/return/{id}")
     public ResponseEntity<?> updateBorrow(@PathVariable Long id) {
         log.info("Received request to update borrow with ID: {}", id);
@@ -79,7 +81,7 @@ public class BorrowController {
     public Long countBorrow(){
         return borrowService.countBorrow();
     }
-
+    @PreAuthorize("hasRole('ADMIN') or hasRole('LIBRARIAN')")
     @GetMapping("/find/{email}")
     public ResponseEntity<?> getBorrowsByUserEmail(@PathVariable("email") String email) {
         log.info("Received request to fetch borrows for user email: {}", email);
