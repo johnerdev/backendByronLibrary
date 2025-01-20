@@ -61,6 +61,51 @@ public class ReserveServiceImpl implements ReserveService{
     }
 
     @Override
+    public List<ReserveDto> getReservesByState(String state) {
+        log.info("Fetching reserves with state: {}", state);
+
+        try {
+            // Validar si el estado proporcionado es válido
+            StateReserve stateEnum;
+            try {
+                stateEnum = StateReserve.valueOf(state.toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                log.error("Invalid state provided: {}", state);
+                throw new ExceptionMessage("El estado proporcionado no es válido. Estados permitidos: ACTIVA, COMPLETADA, CANCELADA.");
+            }
+
+            // Obtener la lista de reservas según el estado
+            List<Reserve> reserves = reserveRepository.findByState(stateEnum);
+
+            // Validar si la lista está vacía
+            if (reserves.isEmpty()) {
+                log.warn("No reserves found with state: {}", stateEnum);
+                throw new ExceptionMessage("No se encontraron reservas con el estado: " + stateEnum);
+            }
+
+            // Convertir la lista de reservas a una lista de DTOs
+            List<ReserveDto> reserveDtos = reserves.stream().map(reserve -> new ReserveDto(
+                    reserve.getIdReserve(),
+                    reserve.getBook().getTitle(),
+                    reserve.getUser().getEmail(),
+                    reserve.getDateReserve().toString(),
+                    reserve.getState().toString()
+            )).collect(Collectors.toList());
+
+            log.info("Total reserves found with state {}: {}", stateEnum, reserveDtos.size());
+            return reserveDtos;
+
+        } catch (ExceptionMessage ex) {
+            log.error("Error fetching reserves: {}", ex.getMessage());
+            throw ex; // Lanza de nuevo la excepción personalizada
+        } catch (Exception ex) {
+            log.error("Unexpected error fetching reserves: {}", ex.getMessage(), ex);
+            throw new ExceptionMessage("Ocurrió un error inesperado al buscar reservas.");
+        }
+    }
+
+
+    @Override
     public ResponseEntity<?> makeReserve(Long id, String email) {
         log.info("Processing reservation for user email: {} and book ID: {}", email, id);
 
@@ -180,8 +225,72 @@ public class ReserveServiceImpl implements ReserveService{
     }
 
 
+    @Override
+    public List<ReserveDto> listReserveByUserEmail(String email) {
+        log.info("Fetching reserves for user email: {}", email);
 
-    public List<Reserve> listReserveBYUser(Long idUser) {
-        return reserveRepository.findByUserId(idUser);
+        // Validar que el correo no sea nulo o vacío
+        if (email == null || email.isBlank()) {
+            log.warn("Invalid input: email is null or empty");
+            throw new ExceptionMessage("El correo electrónico del usuario es obligatorio y no puede estar vacío.");
+        }
+
+        try {
+            // Verificar si el usuario existe
+            Users user = usersRepository.findByEmail(email)
+                    .orElseThrow(() -> new ExceptionMessage("Usuario no encontrado con el email: " + email));
+
+            // Obtener las reservas del usuario
+            List<Reserve> reserves = reserveRepository.findByUserId(user.getId());
+
+            // Validar si el usuario no tiene reservas
+            if (reserves.isEmpty()) {
+                log.warn("No reserves found for user email: {}", email);
+                throw new ExceptionMessage("No se encontraron reservas para el usuario con email: " + email);
+            }
+
+            // Convertir las reservas a DTOs para la respuesta
+            List<ReserveDto> reserveDtos = reserves.stream().map(reserve -> new ReserveDto(
+                    reserve.getIdReserve(),
+                    reserve.getBook().getTitle(),
+                    reserve.getUser().getEmail(),
+                    reserve.getDateReserve().toString(),
+                    reserve.getState().toString()
+            )).collect(Collectors.toList());
+
+            log.info("Found {} reserves for user email: {}", reserveDtos.size(), email);
+            return reserveDtos;
+
+        } catch (ExceptionMessage ex) {
+            log.error("Error fetching reserves for user email {}: {}", email, ex.getMessage());
+            throw ex; // Lanza de nuevo la excepción personalizada
+        } catch (Exception ex) {
+            log.error("Unexpected error fetching reserves for user email {}: {}", email, ex.getMessage(), ex);
+            throw new ExceptionMessage("Ocurrió un error inesperado al buscar las reservas para el usuario.");
+        }
     }
+
+
+
+
+    @Override
+    public Long countReservesActives() {
+        log.info("Counting active reserves");
+
+        try {
+            // Usar el valor del enum directamente en lugar de convertir un string
+            StateReserve stateActive = StateReserve.ACTIVA;
+
+            // Consultar las reservas activas y contarlas
+            Long activeReservesCount = reserveRepository.countByState(stateActive);
+
+            log.info("Total active reserves: {}", activeReservesCount);
+            return activeReservesCount;
+
+        } catch (Exception ex) {
+            log.error("Unexpected error counting active reserves: {}", ex.getMessage(), ex);
+            throw new ExceptionMessage("Ocurrió un error inesperado al contar las reservas activas.");
+        }
+    }
+
 }

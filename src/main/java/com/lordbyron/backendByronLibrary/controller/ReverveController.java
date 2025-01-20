@@ -40,6 +40,15 @@ public class ReverveController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }
+    @GetMapping("/all/{state}")
+    public ResponseEntity<?> getAllReservesByState(@PathVariable String state) {
+        try {
+            List<ReserveDto> reserve = reserveService.getReservesByState(state);
+            return ResponseEntity.ok(reserve);
+        } catch (ExceptionMessage e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        }
+    }
     @PostMapping("/add/{bookId}/{email}")
     public ResponseEntity<?> createReservation(
             @PathVariable Long bookId,
@@ -73,4 +82,39 @@ public class ReverveController {
                     .body(Map.of("error", "Ocurrió un error inesperado. Por favor, inténtelo más tarde."));
         }
     }
+    @GetMapping("/count")
+    public ResponseEntity<?> countActiveReserves() {
+        log.info("Received request to count active reserves");
+
+        try {
+            Long activeReservesCount = reserveService.countReservesActives();
+            return ResponseEntity.ok(Map.of("activeReserves", activeReservesCount));
+        } catch (ExceptionMessage ex) {
+            log.error("Error counting active reserves: {}", ex.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            log.error("Unexpected error counting active reserves: {}", ex.getMessage(), ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ocurrió un error inesperado. Por favor, inténtelo más tarde."));
+        }
+    }
+    @GetMapping("/find/{email}")
+    public ResponseEntity<?> getReservesByUserEmail(@PathVariable String email) {
+        log.info("Received request to fetch reserves for user email: {}", email);
+
+        try {
+            List<ReserveDto> reserves = reserveService.listReserveByUserEmail(email);
+            return ResponseEntity.ok(reserves);
+        } catch (ExceptionMessage ex) {
+            log.error("Error fetching reserves for user email {}: {}", email, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            log.error("Unexpected error fetching reserves for user email {}: {}", email, ex.getMessage(), ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Ocurrió un error inesperado. Por favor, inténtelo más tarde."));
+        }
+    }
+
 }

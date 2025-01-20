@@ -11,7 +11,9 @@ import java.util.List;
 
 public interface ReserveService {
     List<ReserveDto> getReserves();
+    List<ReserveDto> getReservesByState(String state);
     ResponseEntity<?> makeReserve(Long id, String email);
     ResponseEntity<?> cancelReserve(Long id);
-    List<Reserve> listReserveBYUser(Long idUser);
+     List<ReserveDto> listReserveByUserEmail(String email);
+    Long countReservesActives();
 }
